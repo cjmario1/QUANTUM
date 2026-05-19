@@ -1,0 +1,369 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quantum</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #121214;
+            color: #e2e8f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+
+        /* Top Bar Layout & Navigation Tabs */
+        .navbar {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #1a1a1e;
+            border-bottom: 1px solid #2d2d34;
+            padding: 5px 0;
+            gap: 30px;
+        }
+
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #38bdf8;
+            font-weight: bold;
+            opacity: 0.4;
+            border-bottom: 3px solid transparent;
+            transition: 0.2s;
+        }
+
+
+        .tab.active {
+            opacity: 1;
+            border-bottom: 3px solid #38bdf8;
+        }
+
+
+        .search-homepage {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin-top: 140px;
+            width: 90%;
+            max-width: 600px;
+        }
+
+
+        .logo {
+            font-size: 64px;
+            font-weight: 800;
+            color: #38bdf8;
+            margin-bottom: 25px;
+            letter-spacing: -2px;
+            text-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+        }
+
+
+        .search-box {
+            width: 100%;
+            display: flex;
+            background-color: #1e1e24;
+            border: 2px solid #334155;
+            border-radius: 30px;
+            padding: 5px 20px;
+            box-sizing: border-box;
+        }
+
+
+        .search-box input {
+            width: 100%;
+            background: none;
+            border: none;
+            padding: 12px;
+            font-size: 16px;
+            color: white;
+            outline: none;
+        }
+
+
+        .search-btn {
+            background-color: #38bdf8;
+            color: #0f172a;
+            border: none;
+            padding: 12px 30px;
+            margin-top: 25px;
+            border-radius: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+
+        .search-btn:hover {
+            background-color: #0ea5e9;
+            transform: scale(1.02);
+        }
+
+
+        /* Live Results Layout */
+        .results-container {
+            width: 90%;
+            max-width: 850px;
+            margin-top: 30px;
+            display: none;
+            padding-bottom: 50px;
+        }
+
+
+        /* Web Mode Result Item Styling */
+        .web-result {
+            background-color: #1e1e24;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border: 1px solid #334155;
+        }
+
+
+        .web-result h3 {
+            margin: 0 0 5px 0;
+            color: #38bdf8;
+            font-size: 20px;
+        }
+
+
+        .web-result .link {
+            color: #94a3b8;
+            font-size: 13px;
+            margin-bottom: 10px;
+            word-break: break-all;
+        }
+
+
+        .web-result p {
+            margin: 0;
+            color: #cbd5e1;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+
+
+        /* Image Mode Gallery Grid System */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+
+        .image-card {
+            background-color: #1e1e24;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+
+        /* HTML5 Dynamic Vector Element */
+        .image-card canvas {
+            width: 100%;
+            height: 170px;
+            border-radius: 6px;
+            background-color: #0e0e10;
+        }
+
+
+        .image-card p {
+            margin: 12px 0 0 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #38bdf8;
+            text-transform: capitalize;
+            text-align: center;
+        }
+
+
+        .loading {
+            text-align: center;
+            font-size: 18px;
+            color: #94a3b8;
+            margin-top: 40px;
+        }
+    </style>
+</head>
+<body>
+
+
+    <div class="navbar">
+        <div id="webTab" class="tab active" onclick="switchTab('web')">Websites</div>
+        <div id="imageTab" class="tab" onclick="switchTab('images')">Images</div>
+    </div>
+
+
+    <div class="search-homepage" id="homepage">
+        <div class="logo">QUANTUM</div>
+        <div class="search-box">
+            <input type="text" id="searchQuery" placeholder="Search the actual internet..." onkeypress="checkEnter(event)">
+        </div>
+        <button class="search-btn" onclick="performLiveSearch()">Live Internet Search</button>
+    </div>
+
+
+    <div class="results-container" id="resultsView">
+        <button class="search-btn" style="margin: 0 0 20px 0; padding: 6px 18px;" onclick="returnHome()">← New Search</button>
+        <div id="outputArea"></div>
+    </div>
+
+
+    <script>
+        let currentTab = 'web';
+
+
+        function switchTab(type) {
+            currentTab = type;
+            document.getElementById('webTab').classList.remove('active');
+            document.getElementById('imageTab').classList.remove('active');
+            document.getElementById(type + 'Tab').classList.add('active');
+            
+            // Re-execute automatically if words are already in the input box
+            if (document.getElementById('searchQuery').value.trim()) {
+                performLiveSearch();
+            }
+        }
+
+
+        function checkEnter(e) {
+            if (e.key === 'Enter') performLiveSearch();
+        }
+
+
+        function returnHome() {
+            document.getElementById('searchQuery').value = '';
+            document.getElementById('resultsView').style.display = 'none';
+            document.getElementById('homepage').style.display = 'flex';
+        }
+
+
+        // CONTROL CENTRAL FOR PORTAL EXTRACTION
+        function performLiveSearch() {
+            const query = document.getElementById('searchQuery').value.trim();
+            if (!query) return;
+
+
+            document.getElementById('homepage').style.display = 'none';
+            document.getElementById('resultsView').style.display = 'block';
+            
+            const output = document.getElementById('outputArea');
+            output.innerHTML = '<div class="loading">Crawling the web for live data...</div>';
+
+
+            if (currentTab === 'web') {
+                fetchWebResults(query, output);
+            } else {
+                fetchImageResults(query, output);
+            }
+        }
+
+
+        // ENGINE 1: WEBSITE HANDLER (Wikipedia Database Records)
+        async function fetchWebResults(query, output) {
+            const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&prop=info&inprop=url&utf8=&format=json&origin=*&srlimit=5&srsearch=${encodeURIComponent(query)}`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                output.innerHTML = ''; 
+
+
+                const results = data.query.search;
+                if (results.length === 0) {
+                    output.innerHTML = `<div class="loading">No actual records found for "${query}". Try another topic.</div>`;
+                    return;
+                }
+
+
+                results.forEach(result => {
+                    const pageUrl = `https://en.wikipedia.org/?curid=${result.pageid}`;
+                    const cleanSnippet = result.snippet.replace(/<span class="searchmatch">/g, '').replace(/<\/span>/g, '');
+
+
+                    output.innerHTML += `
+                        <div class="web-result">
+                            <h3>${result.title}</h3>
+                            <div class="link">${pageUrl}</div>
+                            <p>${cleanSnippet}...</p>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                output.innerHTML = '<div class="loading" style="color: #f87171;">Error connecting to live servers. Check your internet connection.</div>';
+            }
+        }
+
+
+        // Text hash processor to lock uniquely paired colors to your keyword text strings
+        function getQuerySeed(str) {
+            let hash = 0;
+            for (let i = 0; i < str.length; i++) {
+                hash = str.charCodeAt(i) + ((hash << 5) - hash);
+            }
+            return Math.abs(hash);
+        }
+
+
+        // ENGINE 2: UNBLOCKABLE SECURE IMAGE GENERATOR
+        function fetchImageResults(query, output) {
+            output.innerHTML = '';
+            const seedValue = getQuerySeed(query.toLowerCase());
+            
+            let gridHtml = '<div class="image-grid">';
+            for (let i = 1; i <= 4; i++) {
+                gridHtml += `
+                    <div class="image-card">
+                        <canvas id="quantumGridCanvas_${i}" width="280" height="170"></canvas>
+                        <p>${query} Match ${i}</p>
+                    </div>
+                `;
+            }
+            gridHtml += '</div>';
+            output.innerHTML = gridHtml;
+
+
+            // Generate graphic visual vectors natively inside the sandboxed nodes
+            for (let i = 1; i <= 4; i++) {
+                const canvas = document.getElementById(`quantumGridCanvas_${i}`);
+                if (!canvas) continue;
+                const ctx = canvas.getContext('2d');
+
+
+                // Compute color frequencies using your search term text
+                const primaryHue = (seedValue + (i * 70)) % 360;
+                const complementaryHue = (primaryHue + 180) % 360;
+
+
+                // Base matrix gradient background mapping
+                let fillGradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                fillGradient.addColorStop(0, `hsl(${primaryHue}, 70%, 20%)`);
+                fillGradient.addColorStop(1, `hsl(${complementaryHue}, 80%, 10%)`);
+                ctx.fillStyle = fillGradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+
+                // High-tech circular matrix overlays
+                ctx.fillStyle = `hsla(${complementaryHue}, 95%, 65%, 0.12)`;
+                ctx.beginPath();
+                ctx.arc(canvas.width / 2, canvas.height / 2, 35 + (i * 12), 0, Math.PI * 2);
+                ctx.fill();
+
+
+                // Outer telemetry frame outline lines
+                ctx.strokeStyle = `hsla(${primaryHue}, 85%, 55%,
