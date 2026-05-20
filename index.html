@@ -18,14 +18,33 @@
         }
 
 
-        /* Top Bar Layout */
+        /* Top Bar Layout & Navigation Tabs */
         .navbar {
             width: 100%;
             display: flex;
             justify-content: center;
+            align-items: center;
             background-color: #1a1a1e;
             border-bottom: 1px solid #2d2d34;
-            padding: 12px 0;
+            padding: 5px 0;
+            gap: 30px;
+        }
+
+
+        .tab {
+            padding: 12px 20px;
+            cursor: pointer;
+            color: #38bdf8;
+            font-weight: bold;
+            opacity: 0.4;
+            border-bottom: 3px solid transparent;
+            transition: 0.2s;
+        }
+
+
+        .tab.active {
+            opacity: 1;
+            border-bottom: 3px solid #38bdf8;
         }
 
 
@@ -94,13 +113,14 @@
         /* Live Results Layout */
         .results-container {
             width: 90%;
-            max-width: 750px;
+            max-width: 850px;
             margin-top: 30px;
             display: none;
             padding-bottom: 50px;
         }
 
 
+        /* Web Mode Result Item Styling */
         .web-result {
             background-color: #1e1e24;
             padding: 20px;
@@ -133,6 +153,47 @@
         }
 
 
+        /* Image Mode Gallery Grid System */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 20px;
+            width: 100%;
+        }
+
+
+        .image-card {
+            background-color: #1e1e24;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            overflow: hidden;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+
+        /* Live Loaded Online Image Elements */
+        .image-card img {
+            width: 100%;
+            height: 170px;
+            object-fit: cover;
+            border-radius: 6px;
+            background-color: #0e0e10;
+        }
+
+
+        .image-card p {
+            margin: 12px 0 0 0;
+            font-size: 14px;
+            font-weight: bold;
+            color: #38bdf8;
+            text-transform: capitalize;
+            text-align: center;
+        }
+
+
         .loading {
             text-align: center;
             font-size: 18px;
@@ -145,7 +206,8 @@
 
 
     <div class="navbar">
-        <span style="color: #38bdf8; font-weight: bold; cursor: pointer;" onclick="returnHome()">Quantum Live Engine</span>
+        <div id="webTab" class="tab active" onclick="switchTab('web')">Websites</div>
+        <div id="imageTab" class="tab" onclick="switchTab('images')">Images</div>
     </div>
 
 
@@ -165,6 +227,21 @@
 
 
     <script>
+        let currentTab = 'web';
+
+
+        function switchTab(type) {
+            currentTab = type;
+            document.getElementById('webTab').classList.remove('active');
+            document.getElementById('imageTab').classList.remove('active');
+            document.getElementById(type + 'Tab').classList.add('active');
+            
+            if (document.getElementById('searchQuery').value.trim()) {
+                performLiveSearch();
+            }
+        }
+
+
         function checkEnter(e) {
             if (e.key === 'Enter') performLiveSearch();
         }
@@ -177,13 +254,11 @@
         }
 
 
-        // THE LIVE INTERNET CRAWLER / FETCHER
-        async function performLiveSearch() {
+        function performLiveSearch() {
             const query = document.getElementById('searchQuery').value.trim();
             if (!query) return;
 
 
-            // Switch views
             document.getElementById('homepage').style.display = 'none';
             document.getElementById('resultsView').style.display = 'block';
             
@@ -191,30 +266,32 @@
             output.innerHTML = '<div class="loading">Crawling the web for live data...</div>';
 
 
-            // We use the open internet Wikipedia API to pull real database records live
+            if (currentTab === 'web') {
+                fetchWebResults(query, output);
+            } else {
+                fetchLiveImages(query, output);
+            }
+        }
+
+
+        // ENGINE 1: WEBSITE HANDLER (Wikipedia Database Records)
+        async function fetchWebResults(query, output) {
             const url = `https://en.wikipedia.org/w/api.php?action=query&list=search&prop=info&inprop=url&utf8=&format=json&origin=*&srlimit=5&srsearch=${encodeURIComponent(query)}`;
-
-
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-                
-                output.innerHTML = ''; // Clear loading message
+                output.innerHTML = ''; 
 
 
                 const results = data.query.search;
-                
                 if (results.length === 0) {
                     output.innerHTML = `<div class="loading">No actual records found for "${query}". Try another topic.</div>`;
                     return;
                 }
 
 
-                // Render each real web result onto your custom interface
                 results.forEach(result => {
                     const pageUrl = `https://en.wikipedia.org/?curid=${result.pageid}`;
-                    
-                    // Clean up snippet formatting tags that come from the database
                     const cleanSnippet = result.snippet.replace(/<span class="searchmatch">/g, '').replace(/<\/span>/g, '');
 
 
@@ -226,10 +303,49 @@
                         </div>
                     `;
                 });
-
-
             } catch (error) {
                 output.innerHTML = '<div class="loading" style="color: #f87171;">Error connecting to live servers. Check your internet connection.</div>';
+            }
+        }
+
+
+        // ENGINE 2: LIVE INTERNET IMAGE ROUTER (Pulls from Wikimedia Open Repository)
+        async function fetchLiveImages(query, output) {
+            // Step A: Search for actual image titles matching the keywords
+            const searchUrl = `https://en.wikipedia.org/w/api.php?action=query&list=allimages&aifrom=${encodeURIComponent(query)}&ailimit=8&prop=imageinfo&format=json&origin=*`;
+            
+            try {
+                const response = await fetch(searchUrl);
+                const data = await response.json();
+                
+                if (!data.query || !data.query.allimages || data.query.allimages.length === 0) {
+                    output.innerHTML = `<div class="loading">No image database matching "${query}" found. Try another word!</div>`;
+                    return;
+                }
+
+
+                const imagesList = data.query.allimages;
+                output.innerHTML = '';
+                
+                let gridHtml = '<div class="image-grid">';
+                
+                // Step B: Loop through and create image structures using their absolute URLs
+                imagesList.forEach((img, index) => {
+                    if (img.url) {
+                        gridHtml += `
+                            <div class="image-card">
+                                <img src="${img.url}" alt="${query}" onerror="this.src='https://placehold.co/400x300/1e1e24/38bdf8?text=Image+Load+Error'">
+                                <p>${img.title.replace('File:', '').split('.')[0]}</p>
+                            </div>
+                        `;
+                    }
+                });
+                
+                gridHtml += '</div>';
+                output.innerHTML = gridHtml || `<div class="loading">No real photos loaded.</div>`;
+                
+            } catch (error) {
+                output.innerHTML = '<div class="loading" style="color: #f87171;">Network restriction on live media components.</div>';
             }
         }
     </script>
